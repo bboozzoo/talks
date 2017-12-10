@@ -1,0 +1,157 @@
+Go in embedded
+13 Dec 2017
+Tags: foo, bar, baz
+
+Maciej Borzęcki
+Software Engineer, Canonical
+maciek.borzecki@gmail.com
+https://github.com/bboozzoo
+
+* Go
+
+- Appeared  on Nov 8, 2009
+- [[https://golang.org]]
+
+.image img/golang-logo.png _ 600
+
+* Who's behind it?
+
+.image img/ken-thompson.png _ 950
+
+: responsible for B, Unix
+
+* Who's behind it? (2)
+
+.image img/rob-pike.png _ 950
+
+: responsible for Plan9, some of the design approaches of Plan 9 are visible in Go
+
+
+# Go features, syntax & similar stuff
+
+* Features of Go
+
+- Simple syntax
+- Strong, static typing
+- Compiles down to native code
+- Garbage collected
+- Featured toolchain, producing static binaries
+- Batteries included (HTTP, networking, crypto, database, JSON, templates, images)
+- Out of the box cross-compilation
+- License: BSD
+
+: Usual license of 3rd party libraries - BSD(2/3 clause), MIT, Apache 2.0
+
+# basic syntax
+
+* Syntax
+
+- Familiar constructs
+
+   if, for, switch, break, continue, return, ++, +=..
+
+- New statements
+
+   range, defer, func, select, go, <-, ->
+
+- Familiar types
+
+   int{8,16,32,64}, uint{8,16,32,64}, float{32,64}
+   int  - either int32 or int64
+   uint - either uint32 or uint64
+   struct
+
+- New types
+
+   string, byte, rune, uintptr, slice, map, interface, chan
+
+* Syntax - examples, struct
+
+.play code/struct/struct.go /START OMIT/,/END OMIT/
+
+: Structs can be embedded in other structs
+: Can hide and show stuct fields
+
+
+* Syntax - map, slice
+
+- `map`
+
+  // map[string]int  - map of strings to ints
+  f := map[string]int{
+  	"foo": 1,
+  	"bar": 2,
+  }
+  fmt.Println(f["foo"], foo["bar"])  // 1 2
+
+- `slice`
+
+  b := make([]int, 0, 10)  // slice of 0 elements, 10 preallocated
+  z := make([]int, 10)     // slice of 10 elements
+  f := []int{1,2,3,4}
+  fmt.Println(f[0], foo[2], foo[2:])  // 1 3 {3 4}
+
+* Syntax - interfaces
+
+.play code/fooer/fooer.go /START OMIT/,/END OMIT/
+
+: Interface implementations are implicit, that is the one who implements Fooer does not explicity mark that it does so, there's no `implements`, `extends` or similar
+
+* Syntax - sample C code
+
+.code code/c-example/c-example.c
+
+* Syntax - equivalent Go code
+
+.play code/c-example/c-example.go
+
+: direct access to go compiler parser and AST allowed many tools to appear
+
+##### Syntax end
+
+
+
+### Starting with real projects
+
+* Go for embedded
+
+* Example projects
+
+[[https://mender.io][mender.io]]
+
+Mender is an open source tool for updating your embedded devices safely and
+reliably.
+
+[[https://snapcraft.io][snapd]]
+
+Snaps are containerised software packages that are simple to create and install.
+They auto-update and are safe to run. And because they bundle their
+dependencies, they work on all major Linux systems without modification. Snaps
+are available for any Linux OS running snapd, the service that runs and manage
+snaps.
+
+* Integrating with C
+
+
+
+* CGO
+
+Cgo enables Go to call C code.
+
+* Cross compilation
+
+* Go only
+
+Cross-compilation baked into
+
+* Tools
+
+
+* Testing
+
+
+* pprof
+
+* The bad
+
+* Generics/templates/metaprogramming
