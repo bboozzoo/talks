@@ -10,6 +10,7 @@ https://github.com/bboozzoo
 * Go
 
 - Appeared  on Nov 8, 2009
+- 1.0 released in March 2012
 - [[https://golang.org]]
 
 .image img/golang-logo.png _ 600
@@ -28,6 +29,8 @@ https://github.com/bboozzoo
 
 
 # Go features, syntax & similar stuff
+
+* Intro to Go
 
 * Features of Go
 
@@ -50,7 +53,7 @@ https://github.com/bboozzoo
 
    if, for, switch, break, continue, return, ++, +=..
 
-- New statements
+- New constructs
 
    range, defer, func, select, go, <-, ->
 
@@ -60,6 +63,7 @@ https://github.com/bboozzoo
    int  - either int32 or int64
    uint - either uint32 or uint64
    struct
+   T, *T
 
 - New types
 
@@ -130,6 +134,19 @@ dependencies, they work on all major Linux systems without modification. Snaps
 are available for any Linux OS running snapd, the service that runs and manage
 snaps.
 
+* Basics
+
+- Assumes a Linux system
+- Compiles down to static binary
+
+    CGO_ENABLED=0 go build ...
+
+-
+
+* Cross compilation
+
+
+
 * Integrating with C
 
 
@@ -137,8 +154,6 @@ snaps.
 * CGO
 
 Cgo enables Go to call C code.
-
-* Cross compilation
 
 * Go only
 
