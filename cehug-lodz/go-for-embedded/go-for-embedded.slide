@@ -51,27 +51,49 @@ https://github.com/bboozzoo
 
 - Familiar constructs
 
-   if, for, switch, break, continue, return, ++, +=..
+   if, for, switch/case, break, continue, return, goto, ++, +=
 
 - New constructs
 
-   range, defer, func, select, go, <-, ->
+   range, defer, func, select, go, <-, ->, switch x.(type)
 
 - Familiar types
 
    int{8,16,32,64}, uint{8,16,32,64}, float{32,64}
-   int  - either int32 or int64
-   uint - either uint32 or uint64
-   struct
-   T, *T
+   int (int32 or int64), uint (uint32 or uint64), struct, T, *T
 
 - New types
 
    string, byte, rune, uintptr, slice, map, interface, chan
 
+* Syntax (2)
+
+.image img/where-while-where-do.jpg
+
+* Syntax (2)
+
+`do/while` expressed as `for` loops.
+
+`while(1)`
+
+  for {
+  	// loop forever
+  }
+
+`while(condition)`
+
+  flag := false
+  for !flag {
+  	if flag {
+    	flag = false
+  	}
+  }
+
+
+
 * Syntax - examples, struct
 
-.play code/struct/struct.go /START OMIT/,/END OMIT/
+.play gopath/src/code/struct/struct.go /START OMIT/,/END OMIT/
 
 : Structs can be embedded in other structs
 : Can hide and show stuct fields
@@ -97,17 +119,18 @@ https://github.com/bboozzoo
 
 * Syntax - interfaces
 
-.play code/fooer/fooer.go /START OMIT/,/END OMIT/
+.play gopath/src/code/fooer/fooer.go /START OMIT/,/END OMIT/
 
-: Interface implementations are implicit, that is the one who implements Fooer does not explicity mark that it does so, there's no `implements`, `extends` or similar
+: Interface implementations are implicit, that is the one who implements Fooer does not explicity mark that it does so
+: There's no `implements`, `extends` or similar
 
 * Syntax - sample C code
 
-.code code/c-example/c-example.c
+.code gopath/src/code/c-example/c-example.c
 
 * Syntax - equivalent Go code
 
-.play code/c-example/c-example.go
+.play gopath/src/code/c-example/c-example.go
 
 : direct access to go compiler parser and AST allowed many tools to appear
 
@@ -134,30 +157,138 @@ dependencies, they work on all major Linux systems without modification. Snaps
 are available for any Linux OS running snapd, the service that runs and manage
 snaps.
 
-* Basics
+* Basics (1)
 
-- Assumes a Linux system
-- Compiles down to static binary
+Go enforces specific project structure, roots at `GOPATH`
 
-    CGO_ENABLED=0 go build ...
+  GOPATH=/home/user/gocode
 
--
+  /home/user/gocode/
+      src/
+          foo/
+              bar/               (go code in package bar)
+                  x.go
+              quux/              (go code in package main)
+                  y.go           (produces binary named quux)
+      bin/
+          quux                   (<- go install .. puts binaries here)
+          linux_arm/             (<- go install .. when cross compiled)
+              quux
+      pkg/
+          linux_amd64/
+              foo/
+                  bar.a          (installed package object)
 
-* Cross compilation
+Each package `main` produces a binary
 
+* Basics - pure Go code (2)
+
+Basic settings:
+
+- GOARCH: `386`, `amd64`, `arm`, `arm64`, `ppc64[le]`, `mips64[le]`, `mips[le]`
+- GOOS: `linux`, `windows`, `plan9`, `solaris`, `freebsd`, `openbsd`, `dragonfly`
+- not all choices possible
+
+Per architecture tuning:
+
+- GO386: `387`, `sse2`
+- GOARM: `5` (ARMv5, soft-float), `6` (default, ARMv6, VFPv1), `7` (ARMv7, VFPv3)
+
+* Basics - pure Go code (3)
+
+Building:
+
+  $ GOARCH=arm GOARM=7 GOOS=linux \
+     go build -v -x
+   ...
+   <edited>/go/pkg/tool/linux_amd64/compile -o $WORK/runtime/internal/sys.a \
+     -trimpath $WORK -goversion go1.9.2 -p runtime/internal/sys -std -+ -complete \
+     -buildid 72a8e34c91ba0091bd6eb4788d7d48c545c64a90 \
+     -D _<edited>/go/src/runtime/internal/sys -I $WORK -pack ./arch.go ./arch_arm.go \
+     ./intrinsics.go ./stubs.go ./sys.go ./zgoarch_arm.go ./zgoos_linux.go ./zversion.go
+   ...
+
+Useful switches:
+
+- `-x` show executed commands
+- `-v` verbose
+- `-o <path>` output path
+
+: unlike in GNU programs, command line switches are in form -<name> (single -)
+
+* Basics - pure Go code (4)
+
+Tool `compile` (other tools: `link`, `asm`)
+
+  <edited>/go/pkg/tool/linux_amd64/compile ...`
+
+Build ID support
+
+  -buildid 72a8e34c91ba0091bd6eb4788d7d48c545c64a90 \
+
+Selective compilation
+
+  ... ./arch.go ./arch_arm.go \
+  ./intrinsics.go ./stubs.go ./sys.go \
+  ./zgoarch_arm.go ./zgoos_linux.go ./zversion.go
+
+
+* Selective compilation
+
+Target (GOARCH), OS (GOOS) specific files are picked up automatically:
+
+  *_GOOS             zgoos_linux.go os_linux.go
+  *_GOARCH           softfloat_arm.go
+  *_GOOS_GOARCH      signal_linux_arm.go os_linux_arm.go
+
+Or via build tags:
+
+  // +build linux,386 darwin,!cgo
+  // +build linux darwin
+  // +build 386
+
+: build linux,386 darwin,!cgo -> (linux & 386) || (darwin & !cgo)
+
+* Selective compilation (example)
+
+.code gopath/src/code/sysnum/sysnum_64.go
+
+* Assembly - syscall/asm_linux_amd64.s
+
+  TEXT    ·Syscall(SB),NOSPLIT,$0-56
+          CALL    runtime·entersyscall(SB)
+          MOVQ    a1+8(FP), DI
+          MOVQ    a2+16(FP), SI
+          MOVQ    a3+24(FP), DX
+          MOVQ    $0, R10
+          MOVQ    $0, R8
+          MOVQ    $0, R9
+          MOVQ    trap+0(FP), AX  // syscall entry
+          SYSCALL
+          CMPQ    AX, $0xfffffffffffff001
+          JLS     ok
+          MOVQ    $-1, r1+32(FP)
+          MOVQ    $0, r2+40(FP)
+          NEGQ    AX
+          MOVQ    AX, err+48(FP)
+          CALL    runtime·exitsyscall(SB)
+          RET
+  ok:
+          MOVQ    AX, r1+32(FP)
+          MOVQ    DX, r2+40(FP)
+          MOVQ    $0, err+48(FP)
+          CALL    runtime·exitsyscall(SB)
+          RET
 
 
 * Integrating with C
 
+Cgo enables the creation of Go packages that call C code - [[https://golang.org/cmd/cgo/][cmd/cgo]]
 
+.code gopath/src/code/cgo/c-code.c
 
-* CGO
+.play gopath/src/code/cgo/main.go
 
-Cgo enables Go to call C code.
-
-* Go only
-
-Cross-compilation baked into
 
 * Tools
 
@@ -167,6 +298,36 @@ Cross-compilation baked into
 
 * pprof
 
-* The bad
+* The Bad
 
-* Generics/templates/metaprogramming
+* Large binary size
+
+.play gopath/src/code/small-print/print.go
+
+1.8MB (go build)
+
+.play gopath/src/code/smaller-print/print.go
+
+1MB (go build)
+700KB (go build -ldflags '-s')
+270KB (go build -ldflags '-s' && upx)
+
+* No Generics, templates, metaprogramming
+
+  func FindString(list []string, str string) bool {
+  	for _, k := range list {
+  		if k == str {
+  			return true
+  		}
+  	}
+  	return false
+  }
+
+  func FindInt(list []int, str int) bool {
+  	for _, k := range list {
+  		if k == str {
+  			return true
+  		}
+  	}
+  	return false
+  }

@@ -1,0 +1,136 @@
+WORK=/tmp/go-build377267225
+runtime/internal/sys
+mkdir -p $WORK/runtime/internal/sys/_obj/
+mkdir -p $WORK/runtime/internal/
+cd /home/maciek/code/go/go/src/runtime/internal/sys
+/home/maciek/code/go/go/pkg/tool/linux_amd64/compile -o $WORK/runtime/internal/sys.a -trimpath $WORK -goversion go1.9.2 -p runtime/internal/sys -std -+ -complete -buildid 72a8e34c91ba0091bd6eb4788d7d48c545c64a90 -D _/home/maciek/code/go/go/src/runtime/internal/sys -I $WORK -pack ./arch.go ./arch_arm.go ./intrinsics.go ./stubs.go ./sys.go ./zgoarch_arm.go ./zgoos_linux.go ./zversion.go
+runtime/internal/atomic
+mkdir -p $WORK/runtime/internal/atomic/_obj/
+cd /home/maciek/code/go/go/src/runtime/internal/atomic
+/home/maciek/code/go/go/pkg/tool/linux_amd64/compile -o $WORK/runtime/internal/atomic.a -trimpath $WORK -goversion go1.9.2 -p runtime/internal/atomic -std -+ -buildid 55df5a021f16b47ad867faf6619ed1873a3740ae -D _/home/maciek/code/go/go/src/runtime/internal/atomic -I $WORK -pack -asmhdr $WORK/runtime/internal/atomic/_obj/go_asm.h ./atomic_arm.go ./stubs.go
+/home/maciek/code/go/go/pkg/tool/linux_amd64/asm -trimpath $WORK -I $WORK/runtime/internal/atomic/_obj/ -I /home/maciek/code/go/go/pkg/include -D GOOS_linux -D GOARCH_arm -o $WORK/runtime/internal/atomic/_obj/asm_arm.o ./asm_arm.s
+/home/maciek/code/go/go/pkg/tool/linux_amd64/asm -trimpath $WORK -I $WORK/runtime/internal/atomic/_obj/ -I /home/maciek/code/go/go/pkg/include -D GOOS_linux -D GOARCH_arm -o $WORK/runtime/internal/atomic/_obj/sys_linux_arm.o ./sys_linux_arm.s
+pack r $WORK/runtime/internal/atomic.a $WORK/runtime/internal/atomic/_obj/asm_arm.o $WORK/runtime/internal/atomic/_obj/sys_linux_arm.o # internal
+runtime
+mkdir -p $WORK/runtime/_obj/
+mkdir -p $WORK/
+cd /home/maciek/code/go/go/src/runtime
+/home/maciek/code/go/go/pkg/tool/linux_amd64/compile -o $WORK/runtime.a -trimpath $WORK -goversion go1.9.2 -p runtime -std -+ -buildid 720cbfe846d2dae4c1c7864f6dc0b82e88b47149 -D _/home/maciek/code/go/go/src/runtime -I $WORK -pack -asmhdr $WORK/runtime/_obj/go_asm.h ./alg.go ./atomic_pointer.go ./cgo.go ./cgocall.go ./cgocallback.go ./cgocheck.go ./chan.go ./compiler.go ./complex.go ./cpuprof.go ./debug.go ./defs_linux_arm.go ./env_posix.go ./error.go ./extern.go ./fastlog2.go ./fastlog2table.go ./float.go ./hash32.go ./hashmap.go ./hashmap_fast.go ./heapdump.go ./iface.go ./lfstack.go ./lfstack_32bit.go ./lock_futex.go ./malloc.go ./mbarrier.go ./mbitmap.go ./mcache.go ./mcentral.go ./mem_linux.go ./mfinal.go ./mfixalloc.go ./mgc.go ./mgclarge.go ./mgcmark.go ./mgcsweep.go ./mgcsweepbuf.go ./mgcwork.go ./mheap.go ./mmap.go ./mprof.go ./msan0.go ./msize.go ./mstats.go ./netpoll.go ./netpoll_epoll.go ./os_linux.go ./os_linux_arm.go ./os_linux_generic.go ./panic.go ./plugin.go ./print.go ./proc.go ./profbuf.go ./proflabel.go ./race0.go ./rdebug.go ./relax_stub.go ./runtime.go ./runtime1.go ./runtime2.go ./rwmutex.go ./select.go ./sema.go ./sigaction_linux.go ./signal_arm.go ./signal_linux_arm.go ./signal_sighandler.go ./signal_unix.go ./sigqueue.go ./sigtab_linux_generic.go ./sizeclasses.go ./slice.go ./softfloat64.go ./softfloat_arm.go ./sqrt.go ./stack.go ./string.go ./stubs.go ./stubs2.go ./stubs32.go ./stubs_asm.go ./stubs_linux.go ./symtab.go ./sys_arm.go ./sys_nonppc64x.go ./time.go ./timestub.go ./trace.go ./traceback.go ./type.go ./typekind.go ./unaligned2.go ./utf8.go ./vlrt.go ./write_err.go
+/home/maciek/code/go/go/pkg/tool/linux_amd64/asm -trimpath $WORK -I $WORK/runtime/_obj/ -I /home/maciek/code/go/go/pkg/include -D GOOS_linux -D GOARCH_arm -o $WORK/runtime/_obj/asm.o ./asm.s
+/home/maciek/code/go/go/pkg/tool/linux_amd64/asm -trimpath $WORK -I $WORK/runtime/_obj/ -I /home/maciek/code/go/go/pkg/include -D GOOS_linux -D GOARCH_arm -o $WORK/runtime/_obj/asm_arm.o ./asm_arm.s
+/home/maciek/code/go/go/pkg/tool/linux_amd64/asm -trimpath $WORK -I $WORK/runtime/_obj/ -I /home/maciek/code/go/go/pkg/include -D GOOS_linux -D GOARCH_arm -o $WORK/runtime/_obj/duff_arm.o ./duff_arm.s
+/home/maciek/code/go/go/pkg/tool/linux_amd64/asm -trimpath $WORK -I $WORK/runtime/_obj/ -I /home/maciek/code/go/go/pkg/include -D GOOS_linux -D GOARCH_arm -o $WORK/runtime/_obj/memclr_arm.o ./memclr_arm.s
+/home/maciek/code/go/go/pkg/tool/linux_amd64/asm -trimpath $WORK -I $WORK/runtime/_obj/ -I /home/maciek/code/go/go/pkg/include -D GOOS_linux -D GOARCH_arm -o $WORK/runtime/_obj/memmove_arm.o ./memmove_arm.s
+/home/maciek/code/go/go/pkg/tool/linux_amd64/asm -trimpath $WORK -I $WORK/runtime/_obj/ -I /home/maciek/code/go/go/pkg/include -D GOOS_linux -D GOARCH_arm -o $WORK/runtime/_obj/rt0_linux_arm.o ./rt0_linux_arm.s
+/home/maciek/code/go/go/pkg/tool/linux_amd64/asm -trimpath $WORK -I $WORK/runtime/_obj/ -I /home/maciek/code/go/go/pkg/include -D GOOS_linux -D GOARCH_arm -o $WORK/runtime/_obj/sys_linux_arm.o ./sys_linux_arm.s
+/home/maciek/code/go/go/pkg/tool/linux_amd64/asm -trimpath $WORK -I $WORK/runtime/_obj/ -I /home/maciek/code/go/go/pkg/include -D GOOS_linux -D GOARCH_arm -o $WORK/runtime/_obj/tls_arm.o ./tls_arm.s
+/home/maciek/code/go/go/pkg/tool/linux_amd64/asm -trimpath $WORK -I $WORK/runtime/_obj/ -I /home/maciek/code/go/go/pkg/include -D GOOS_linux -D GOARCH_arm -o $WORK/runtime/_obj/vlop_arm.o ./vlop_arm.s
+pack r $WORK/runtime.a $WORK/runtime/_obj/asm.o $WORK/runtime/_obj/asm_arm.o $WORK/runtime/_obj/duff_arm.o $WORK/runtime/_obj/memclr_arm.o $WORK/runtime/_obj/memmove_arm.o $WORK/runtime/_obj/rt0_linux_arm.o $WORK/runtime/_obj/sys_linux_arm.o $WORK/runtime/_obj/tls_arm.o $WORK/runtime/_obj/vlop_arm.o # internal
+errors
+internal/race
+mkdir -p $WORK/errors/_obj/
+sync/atomic
+mkdir -p $WORK/sync/atomic/_obj/
+cd /home/maciek/code/go/go/src/errors
+/home/maciek/code/go/go/pkg/tool/linux_amd64/compile -o $WORK/errors.a -trimpath $WORK -goversion go1.9.2 -p errors -std -complete -buildid 0391108d3201c7b52d8b7d101824b9925ebb3f54 -D _/home/maciek/code/go/go/src/errors -I $WORK -pack ./errors.go
+mkdir -p $WORK/sync/
+mkdir -p $WORK/internal/race/_obj/
+cd /home/maciek/code/go/go/src/sync/atomic
+/home/maciek/code/go/go/pkg/tool/linux_amd64/compile -o $WORK/sync/atomic.a -trimpath $WORK -goversion go1.9.2 -p sync/atomic -std -buildid 2d971845e39461d9857453ce571a1ead1f3d2b13 -D _/home/maciek/code/go/go/src/sync/atomic -I $WORK -pack -asmhdr $WORK/sync/atomic/_obj/go_asm.h ./64bit_arm.go ./doc.go ./value.go
+mkdir -p $WORK/internal/
+cd /home/maciek/code/go/go/src/internal/race
+/home/maciek/code/go/go/pkg/tool/linux_amd64/compile -o $WORK/internal/race.a -trimpath $WORK -goversion go1.9.2 -p internal/race -std -complete -buildid e1f49ddbb5f2fd678a15da77fe0abc8ac6e7ba78 -D _/home/maciek/code/go/go/src/internal/race -I $WORK -pack ./doc.go ./norace.go
+math
+mkdir -p $WORK/math/_obj/
+cd /home/maciek/code/go/go/src/math
+/home/maciek/code/go/go/pkg/tool/linux_amd64/compile -o $WORK/math.a -trimpath $WORK -goversion go1.9.2 -p math -std -buildid 4082ef7f7b23f589996badb4866e26747ed3684f -D _/home/maciek/code/go/go/src/math -I $WORK -pack -asmhdr $WORK/math/_obj/go_asm.h ./abs.go ./acosh.go ./asin.go ./asinh.go ./atan.go ./atan2.go ./atanh.go ./bits.go ./cbrt.go ./const.go ./copysign.go ./dim.go ./erf.go ./exp.go ./expm1.go ./floor.go ./frexp.go ./gamma.go ./hypot.go ./j0.go ./j1.go ./jn.go ./ldexp.go ./lgamma.go ./log.go ./log10.go ./log1p.go ./logb.go ./mod.go ./modf.go ./nextafter.go ./pow.go ./pow10.go ./remainder.go ./signbit.go ./sin.go ./sincos.go ./sinh.go ./sqrt.go ./tan.go ./tanh.go ./unsafe.go
+unicode/utf8
+mkdir -p $WORK/unicode/utf8/_obj/
+mkdir -p $WORK/unicode/
+cd /home/maciek/code/go/go/src/unicode/utf8
+/home/maciek/code/go/go/pkg/tool/linux_amd64/compile -o $WORK/unicode/utf8.a -trimpath $WORK -goversion go1.9.2 -p unicode/utf8 -std -complete -buildid 64c5c01c2a1a67bf074f60aba192a2023343d269 -D _/home/maciek/code/go/go/src/unicode/utf8 -I $WORK -pack ./utf8.go
+unicode
+mkdir -p $WORK/unicode/_obj/
+cd /home/maciek/code/go/go/src/unicode
+/home/maciek/code/go/go/pkg/tool/linux_amd64/compile -o $WORK/unicode<.a -trimpath $WORK -goversion go1.9.2 -p unicode -std -complete -buildid 7e56a2bdcdbf35d7ec4034acc0feee5c6c552f6d -D _/home/maciek/code/go/go/src/unicode -I $WORK -pack ./casetables.go ./digit.go ./graphic.go ./letter.go ./tables.go
+cd /home/maciek/code/go/go/src/sync/atomic
+/home/maciek/code/go/go/pkg/tool/linux_amd64/asm -trimpath $WORK -I $WORK/sync/atomic/_obj/ -I /home/maciek/code/go/go/pkg/include -D GOOS_linux -D GOARCH_arm -o $WORK/sync/atomic/_obj/asm_arm.o ./asm_arm.s
+/home/maciek/code/go/go/pkg/tool/linux_amd64/asm -trimpath $WORK -I $WORK/sync/atomic/_obj/ -I /home/maciek/code/go/go/pkg/include -D GOOS_linux -D GOARCH_arm -o $WORK/sync/atomic/_obj/asm_linux_arm.o ./asm_linux_arm.s
+pack r $WORK/sync/atomic.a $WORK/sync/atomic/_obj/asm_arm.o $WORK/sync/atomic/_obj/asm_linux_arm.o # internal
+sync
+mkdir -p $WORK/sync/_obj/
+cd /home/maciek/code/go/go/src/sync
+/home/maciek/code/go/go/pkg/tool/linux_amd64/compile -o $WORK/sync.a -trimpath $WORK -goversion go1.9.2 -p sync -std -buildid 658fca36b9d0e21b8308769e6d66727ae7476658 -D _/home/maciek/code/go/go/src/sync -I $WORK -pack ./cond.go ./map.go ./mutex.go ./once.go ./pool.go ./runtime.go ./rwmutex.go ./waitgroup.go
+io
+mkdir -p $WORK/io/_obj/
+cd /home/maciek/code/go/go/src/io
+/home/maciek/code/go/go/pkg/tool/linux_amd64/compile -o $WORK/io.a -trimpath $WORK -goversion go1.9.2 -p io -std -complete -buildid b23f9f9386b14514d7c6a5ccad075bfdd4095eb6 -D _/home/maciek/code/go/go/src/io -I $WORK -pack ./io.go ./multi.go ./pipe.go
+syscall
+mkdir -p $WORK/syscall/_obj/
+cd /home/maciek/code/go/go/src/syscall
+/home/maciek/code/go/go/pkg/tool/linux_amd64/compile -o $WORK/syscall.a -trimpath $WORK -goversion go1.9.2 -p syscall -std -buildid e315c45bc13276148c6c92c48fbf4dc45d60ff92 -D _/home/maciek/code/go/go/src/syscall -I $WORK -pack -asmhdr $WORK/syscall/_obj/go_asm.h ./dirent.go ./endian_little.go ./env_unix.go ./exec_linux.go ./exec_unix.go ./flock.go ./flock_linux_32bit.go ./lsf_linux.go ./msan0.go ./net.go ./netlink_linux.go ./setuidgid_32_linux.go ./sockcmsg_linux.go ./sockcmsg_unix.go ./str.go ./syscall.go ./syscall_linux.go ./syscall_linux_arm.go ./syscall_unix.go ./timestruct.go ./zerrors_linux_arm.go ./zsyscall_linux_arm.go ./zsysnum_linux_arm.go ./ztypes_linux_arm.go
+cd /home/maciek/code/go/go/src/math
+/home/maciek/code/go/go/pkg/tool/linux_amd64/asm -trimpath $WORK -I $WORK/math/_obj/ -I /home/maciek/code/go/go/pkg/include -D GOOS_linux -D GOARCH_arm -o $WORK/math/_obj/asin_arm.o ./asin_arm.s
+/home/maciek/code/go/go/pkg/tool/linux_amd64/asm -trimpath $WORK -I $WORK/math/_obj/ -I /home/maciek/code/go/go/pkg/include -D GOOS_linux -D GOARCH_arm -o $WORK/math/_obj/asinh_stub.o ./asinh_stub.s
+/home/maciek/code/go/go/pkg/tool/linux_amd64/asm -trimpath $WORK -I $WORK/math/_obj/ -I /home/maciek/code/go/go/pkg/include -D GOOS_linux -D GOARCH_arm -o $WORK/math/_obj/atan2_arm.o ./atan2_arm.s
+/home/maciek/code/go/go/pkg/tool/linux_amd64/asm -trimpath $WORK -I $WORK/math/_obj/ -I /home/maciek/code/go/go/pkg/include -D GOOS_linux -D GOARCH_arm -o $WORK/math/_obj/atan_arm.o ./atan_arm.s
+/home/maciek/code/go/go/pkg/tool/linux_amd64/asm -trimpath $WORK -I $WORK/math/_obj/ -I /home/maciek/code/go/go/pkg/include -D GOOS_linux -D GOARCH_arm -o $WORK/math/_obj/cbrt_stub.o ./cbrt_stub.s
+/home/maciek/code/go/go/pkg/tool/linux_amd64/asm -trimpath $WORK -I $WORK/math/_obj/ -I /home/maciek/code/go/go/pkg/include -D GOOS_linux -D GOARCH_arm -o $WORK/math/_obj/dim_arm.o ./dim_arm.s
+/home/maciek/code/go/go/pkg/tool/linux_amd64/asm -trimpath $WORK -I $WORK/math/_obj/ -I /home/maciek/code/go/go/pkg/include -D GOOS_linux -D GOARCH_arm -o $WORK/math/_obj/erf_stub.o ./erf_stub.s
+/home/maciek/code/go/go/pkg/tool/linux_amd64/asm -trimpath $WORK -I $WORK/math/_obj/ -I /home/maciek/code/go/go/pkg/include -D GOOS_linux -D GOARCH_arm -o $WORK/math/_obj/exp2_arm.o ./exp2_arm.s
+/home/maciek/code/go/go/pkg/tool/linux_amd64/asm -trimpath $WORK -I $WORK/math/_obj/ -I /home/maciek/code/go/go/pkg/include -D GOOS_linux -D GOARCH_arm -o $WORK/math/_obj/exp_arm.o ./exp_arm.s
+/home/maciek/code/go/go/pkg/tool/linux_amd64/asm -trimpath $WORK -I $WORK/math/_obj/ -I /home/maciek/code/go/go/pkg/include -D GOOS_linux -D GOARCH_arm -o $WORK/math/_obj/expm1_arm.o ./expm1_arm.s
+/home/maciek/code/go/go/pkg/tool/linux_amd64/asm -trimpath $WORK -I $WORK/math/_obj/ -I /home/maciek/code/go/go/pkg/include -D GOOS_linux -D GOARCH_arm -o $WORK/math/_obj/floor_arm.o ./floor_arm.s
+/home/maciek/code/go/go/pkg/tool/linux_amd64/asm -trimpath $WORK -I $WORK/math/_obj/ -I /home/maciek/code/go/go/pkg/include -D GOOS_linux -D GOARCH_arm -o $WORK/math/_obj/frexp_arm.o ./frexp_arm.s
+/home/maciek/code/go/go/pkg/tool/linux_amd64/asm -trimpath $WORK -I $WORK/math/_obj/ -I /home/maciek/code/go/go/pkg/include -D GOOS_linux -D GOARCH_arm -o $WORK/math/_obj/hypot_arm.o ./hypot_arm.s
+/home/maciek/code/go/go/pkg/tool/linux_amd64/asm -trimpath $WORK -I $WORK/math/_obj/ -I /home/maciek/code/go/go/pkg/include -D GOOS_linux -D GOARCH_arm -o $WORK/math/_obj/ldexp_arm.o ./ldexp_arm.s
+/home/maciek/code/go/go/pkg/tool/linux_amd64/asm -trimpath $WORK -I $WORK/math/_obj/ -I /home/maciek/code/go/go/pkg/include -D GOOS_linux -D GOARCH_arm -o $WORK/math/_obj/log10_arm.o ./log10_arm.s
+/home/maciek/code/go/go/pkg/tool/linux_amd64/asm -trimpath $WORK -I $WORK/math/_obj/ -I /home/maciek/code/go/go/pkg/include -D GOOS_linux -D GOARCH_arm -o $WORK/math/_obj/log1p_arm.o ./log1p_arm.s
+/home/maciek/code/go/go/pkg/tool/linux_amd64/asm -trimpath $WORK -I $WORK/math/_obj/ -I /home/maciek/code/go/go/pkg/include -D GOOS_linux -D GOARCH_arm -o $WORK/math/_obj/log_arm.o ./log_arm.s
+/home/maciek/code/go/go/pkg/tool/linux_amd64/asm -trimpath $WORK -I $WORK/math/_obj/ -I /home/maciek/code/go/go/pkg/include -D GOOS_linux -D GOARCH_arm -o $WORK/math/_obj/mod_arm.o ./mod_arm.s
+/home/maciek/code/go/go/pkg/tool/linux_amd64/asm -trimpath $WORK -I $WORK/math/_obj/ -I /home/maciek/code/go/go/pkg/include -D GOOS_linux -D GOARCH_arm -o $WORK/math/_obj/modf_arm.o ./modf_arm.s
+/home/maciek/code/go/go/pkg/tool/linux_amd64/asm -trimpath $WORK -I $WORK/math/_obj/ -I /home/maciek/code/go/go/pkg/include -D GOOS_linux -D GOARCH_arm -o $WORK/math/_obj/pow_stub.o ./pow_stub.s
+/home/maciek/code/go/go/pkg/tool/linux_amd64/asm -trimpath $WORK -I $WORK/math/_obj/ -I /home/maciek/code/go/go/pkg/include -D GOOS_linux -D GOARCH_arm -o $WORK/math/_obj/remainder_arm.o ./remainder_arm.s
+/home/maciek/code/go/go/pkg/tool/linux_amd64/asm -trimpath $WORK -I $WORK/math/_obj/ -I /home/maciek/code/go/go/pkg/include -D GOOS_linux -D GOARCH_arm -o $WORK/math/_obj/sin_arm.o ./sin_arm.s
+/home/maciek/code/go/go/pkg/tool/linux_amd64/asm -trimpath $WORK -I $WORK/math/_obj/ -I /home/maciek/code/go/go/pkg/include -D GOOS_linux -D GOARCH_arm -o $WORK/math/_obj/sinh_stub.o ./sinh_stub.s
+/home/maciek/code/go/go/pkg/tool/linux_amd64/asm -trimpath $WORK -I $WORK/math/_obj/ -I /home/maciek/code/go/go/pkg/include -D GOOS_linux -D GOARCH_arm -o $WORK/math/_obj/sqrt_arm.o ./sqrt_arm.s
+/home/maciek/code/go/go/pkg/tool/linux_amd64/asm -trimpath $WORK -I $WORK/math/_obj/ -I /home/maciek/code/go/go/pkg/include -D GOOS_linux -D GOARCH_arm -o $WORK/math/_obj/tan_arm.o ./tan_arm.s
+pack r $WORK/math.a $WORK/math/_obj/asin_arm.o $WORK/math/_obj/asinh_stub.o $WORK/math/_obj/atan2_arm.o $WORK/math/_obj/atan_arm.o $WORK/math/_obj/cbrt_stub.o $WORK/math/_obj/dim_arm.o $WORK/math/_obj/erf_stub.o $WORK/math/_obj/exp2_arm.o $WORK/math/_obj/exp_arm.o $WORK/math/_obj/expm1_arm.o $WORK/math/_obj/floor_arm.o $WORK/math/_obj/frexp_arm.o $WORK/math/_obj/hypot_arm.o $WORK/math/_obj/ldexp_arm.o $WORK/math/_obj/log10_arm.o $WORK/math/_obj/log1p_arm.o $WORK/math/_obj/log_arm.o $WORK/math/_obj/mod_arm.o $WORK/math/_obj/modf_arm.o $WORK/math/_obj/pow_stub.o $WORK/math/_obj/remainder_arm.o $WORK/math/_obj/sin_arm.o $WORK/math/_obj/sinh_stub.o $WORK/math/_obj/sqrt_arm.o $WORK/math/_obj/tan_arm.o # internal
+strconv
+mkdir -p $WORK/strconv/_obj/
+cd /home/maciek/code/go/go/src/strconv
+/home/maciek/code/go/go/pkg/tool/linux_amd64/compile -o $WORK/strconv.a -trimpath $WORK -goversion go1.9.2 -p strconv -std -complete -buildid 07a9aab1e56f57e4d9bed694c53ed2c1a30f36d1 -D _/home/maciek/code/go/go/src/strconv -I $WORK -pack ./atob.go ./atof.go ./atoi.go ./decimal.go ./doc.go ./extfloat.go ./ftoa.go ./isprint.go ./itoa.go ./quote.go
+reflect
+mkdir -p $WORK/reflect/_obj/
+cd /home/maciek/code/go/go/src/reflect
+/home/maciek/code/go/go/pkg/tool/linux_amd64/compile -o $WORK/reflect.a -trimpath $WORK -goversion go1.9.2 -p reflect -std -buildid 39b8d97b6e25c29c90ec8260ef979a7b2665c060 -D _/home/maciek/code/go/go/src/reflect -I $WORK -pack -asmhdr $WORK/reflect/_obj/go_asm.h ./deepequal.go ./makefunc.go ./swapper.go ./type.go ./value.go
+cd /home/maciek/code/go/go/src/syscall
+/home/maciek/code/go/go/pkg/tool/linux_amd64/asm -trimpath $WORK -I $WORK/syscall/_obj/ -I /home/maciek/code/go/go/pkg/include -D GOOS_linux -D GOARCH_arm -o $WORK/syscall/_obj/asm_linux_arm.o ./asm_linux_arm.s
+pack r $WORK/syscall.a $WORK/syscall/_obj/asm_linux_arm.o # internal
+time
+mkdir -p $WORK/time/_obj/
+cd /home/maciek/code/go/go/src/time
+/home/maciek/code/go/go/pkg/tool/linux_amd64/compile -o $WORK/time.a -trimpath $WORK -goversion go1.9.2 -p time -std -buildid d243c5dd23be5931007ba7dff1ecbddbfa602f96 -D _/home/maciek/code/go/go/src/time -I $WORK -pack ./format.go ./sleep.go ./sys_unix.go ./tick.go ./time.go ./zoneinfo.go ./zoneinfo_read.go ./zoneinfo_unix.go
+internal/poll
+mkdir -p $WORK/internal/poll/_obj/
+cd /home/maciek/code/go/go/src/internal/poll
+/home/maciek/code/go/go/pkg/tool/linux_amd64/compile -o $WORK/internal/poll.a -trimpath $WORK -goversion go1.9.2 -p internal/poll -std -buildid 8e0f9efeb28374ad13fec03e8978e31ef259fef2 -D _/home/maciek/code/go/go/src/internal/poll -I $WORK -pack ./fd.go ./fd_mutex.go ./fd_poll_runtime.go ./fd_posix.go ./fd_unix.go ./hook_cloexec.go ./hook_unix.go ./sendfile_linux.go ./sock_cloexec.go ./sockopt.go ./sockopt_linux.go ./sockopt_unix.go ./sockoptip.go ./writev.go
+os
+mkdir -p $WORK/os/_obj/
+cd /home/maciek/code/go/go/src/os
+/home/maciek/code/go/go/pkg/tool/linux_amd64/compile -o $WORK/os.a -trimpath $WORK -goversion go1.9.2 -p os -std -buildid 8c83b47786a4a0fe5c00adf80f24ecdac7d852b5 -D _/home/maciek/code/go/go/src/os -I $WORK -pack ./dir.go ./dir_unix.go ./env.go ./error.go ./error_posix.go ./error_unix.go ./exec.go ./exec_posix.go ./exec_unix.go ./executable.go ./executable_procfs.go ./file.go ./file_posix.go ./file_unix.go ./getwd.go ./path.go ./path_unix.go ./pipe_linux.go ./proc.go ./stat_linux.go ./stat_unix.go ./sticky_notbsd.go ./str.go ./sys.go ./sys_linux.go ./sys_unix.go ./types.go ./types_unix.go ./wait_waitid.go
+cd /home/maciek/code/go/go/src/reflect
+/home/maciek/code/go/go/pkg/tool/linux_amd64/asm -trimpath $WORK -I $WORK/reflect/_obj/ -I /home/maciek/code/go/go/pkg/include -D GOOS_linux -D GOARCH_arm -o $WORK/reflect/_obj/asm_arm.o ./asm_arm.s
+pack r $WORK/reflect.a $WORK/reflect/_obj/asm_arm.o # internal
+fmt
+mkdir -p $WORK/fmt/_obj/
+cd /home/maciek/code/go/go/src/fmt
+/home/maciek/code/go/go/pkg/tool/linux_amd64/compile -o $WORK/fmt.a -trimpath $WORK -goversion go1.9.2 -p fmt -std -complete -buildid 50c689927c8b20427bc6187afa10302002b63bb6 -D _/home/maciek/code/go/go/src/fmt -I $WORK -pack ./doc.go ./format.go ./print.go ./scan.go
+_/home/maciek/code/talks/cehug-lodz/go-for-embedded/code/fooer
+mkdir -p $WORK/_/home/maciek/code/talks/cehug-lodz/go-for-embedded/code/fooer/_obj/
+mkdir -p $WORK/_/home/maciek/code/talks/cehug-lodz/go-for-embedded/code/fooer/_obj/exe/
+cd /home/maciek/code/talks/cehug-lodz/go-for-embedded/code/fooer
+/home/maciek/code/go/go/pkg/tool/linux_amd64/compile -o $WORK/_/home/maciek/code/talks/cehug-lodz/go-for-embedded/code/fooer.a -trimpath $WORK -goversion go1.9.2 -p main -complete -buildid 21d402b5d0d8cd0a354291a158b6ded820049ddb -D _/home/maciek/code/talks/cehug-lodz/go-for-embedded/code/fooer -I $WORK -pack ./fooer.go
+cd .
+/home/maciek/code/go/go/pkg/tool/linux_amd64/link -o $WORK/_/home/maciek/code/talks/cehug-lodz/go-for-embedded/code/fooer/_obj/exe/a.out -L $WORK -extld=gcc -buildmode=exe -buildid=21d402b5d0d8cd0a354291a158b6ded820049ddb $WORK/_/home/maciek/code/talks/cehug-lodz/go-for-embedded/code/fooer.a
+cp $WORK/_/home/maciek/code/talks/cehug-lodz/go-for-embedded/code/fooer/_obj/exe/a.out fooer
