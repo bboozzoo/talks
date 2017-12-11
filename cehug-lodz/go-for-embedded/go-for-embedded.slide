@@ -280,23 +280,172 @@ Or via build tags:
           CALL    runtime·exitsyscall(SB)
           RET
 
+* C + Go = Cgo
 
-* Integrating with C
+
+* Cgo & integrating with C (1)
 
 Cgo enables the creation of Go packages that call C code - [[https://golang.org/cmd/cgo/][cmd/cgo]]
 
-.code gopath/src/code/cgo/c-code.c
+- Cgo automatically enabled by default when building for the same GOOS & GOARCH
+
+- setting GOOS or GOARCH different than hosts's *disables* CGO
+
+- example: [[https://github.com/bboozzoo/viadown][viadown]]
+
+  $ go build github.com/bboozzoo/viadown
+  $ ldd viadown
+        linux-vdso.so.1 (0x00007fff529ba000)
+        libpthread.so.0 => /usr/lib/libpthread.so.0 (0x00007f482d5da000)
+        libc.so.6 => /usr/lib/libc.so.6 (0x00007f482d222000)
+        /lib64/ld-linux-x86-64.so.2 => /usr/lib64/ld-linux-x86-64.so.2 (0x00007f482d7f8000)
+  $ CGO_ENABLED=0 go build github.com/bboozzoo/viadown
+  $ ldd viadown
+        not a dynamic executable
+
+: we have a dependency on libc and on a particular loader
+
+Use cases:
+- building for a container with different libc, eg. Alpine using `musl`
+
+: disabling CGO has some implications, eg. libc integration is disabled
+: no more getpwent() - non-cgo code will parse /etc/passwd
+: no more libc's resolver (NSS)
+
+* Integrating with C (2)
+
+.code gopath/src/code/cgo/foo.c
 
 .play gopath/src/code/cgo/main.go
+
+* Integrating with C (3)
+
+  $ go build -x -v code/cgo
+  ...
+  CGO_LDFLAGS="-g" "-O2" /home/maciek/code/go/go/pkg/tool/linux_amd64/cgo
+      -objdir $WORK/code/cgo/_obj/ -importpath code/cgo --
+      -I $WORK/code/cgo/_obj/ -g -O2 -Wall -Wextra -Wno-unused
+      -I/home/maciek/code/talks/cehug-lodz/go-for-embedded/gopath/src/code/cgo main.go
+  gcc -I . -fPIC -m64 -pthread -fmessage-length=0 -fdebug-prefix-map=$WORK=/tmp/go-build
+      -gno-record-gcc-switches -I $WORK/code/cgo/_obj/ -g -O2 -Wall -Wextra -Wno-unused
+      -I/home/maciek/code/talks/cehug-lodz/go-for-embedded/gopath/src/code/cgo
+      -o $WORK/code/cgo/_obj/foo.o -c foo.c
+  /home/maciek/code/go/go/pkg/tool/linux_amd64/link -o $WORK/code/cgo/_obj/exe/a.out
+      -L $WORK -extld=gcc -buildmode=exe -buildid=3477b3f117e0c8476113f77294063c7f4a796b19
+      $WORK/code/cgo.a
+  ...
+  $ ldd ./cgo
+        linux-vdso.so.1 (0x00007ffd1b941000)
+        libpthread.so.0 => /usr/lib/libpthread.so.0 (0x00007f8595583000)
+        libc.so.6 => /usr/lib/libc.so.6 (0x00007f85951cb000)
+        /lib64/ld-linux-x86-64.so.2 => /usr/lib64/ld-linux-x86-64.so.2 (0x00007f85957a1000)
+
+
+Well, that's not really a static executable.
+
+* Integrating with C (4)
+
+  $ go build -x -v -ldflags '-extldflags "-static"' code/cgo
+  ...
+  /home/maciek/code/go/go/pkg/tool/linux_amd64/link -o $WORK/code/cgo/_obj/exe/a.out
+      -L $WORK -extld=gcc -buildmode=exe -buildid=3477b3f117e0c8476113f77294063c7f4a796b19
+      -extldflags -static $WORK/code/cgo.a
+  ...
+  $ ldd ./cgo
+        not a dynamic executable
+
+* Integrating with C (5) - cross compilation
+
+Go tools respect CC, CXX
+
+  $ CGO_ENABLED=1 CC=arm-linux-gnueabihf-gcc \
+    GOARCH=arm GOARM=7 \
+    go build -x -v -o cgo -ldflags '-extldflags "-static"' code/cgo
+  $ ldd ./cgo
+        not a dynamic executable
+  $ file cgo
+  cgo: ELF 32-bit LSB executable, ARM, EABI5 version 1 (SYSV), statically linked,
+       for GNU/Linux 2.6.16, BuildID[sha1]=8330c33cc2d9602a6e2243b96375f9ce998717ac,
+       with debug_info, not stripped
+
+*DEMO* C.H.I.P.
+
+* Integrating with C (6)
+
+`github.com/snapcore/snapd/cmd/snap-seccomp/main.go`
+
+  //#cgo CFLAGS: -D_FILE_OFFSET_BITS=64
+  //#cgo pkg-config: --static --cflags libseccomp
+  //#cgo LDFLAGS: -Wl,-Bstatic -lseccomp -Wl,-Bdynamic
+  //
+  //#include <asm/ioctls.h>
+  //#include <ctype.h>
+  //#include <errno.h>
+  //#include <linux/can.h>
+  //#include <linux/netlink.h>
+  //#include <sched.h>
+
+* The Rest
+
+* Toolchain
+
+- compile, link, asm
+- built-in race detector
+- built-in test tool (both testing & benchmarking)
 
 
 * Tools
 
+Go ships with a bunch of useful tools:
 
-* Testing
+- cover - analyze coverage reports
+- gofmt - unified code formatting tool & simple refactoring
+- gorename - complex refactoring
+- eg - example based refactoring
+- guru - source code inspection
 
 
-* pprof
+* Testing (1)
+
+.code gopath/src/code/test-example/foo.go
+
+.code gopath/src/code/test-example/foo_test.go
+
+* Testing (2)
+
+Simple test with race detector
+
+  $ go test -race
+  PASS
+  ok      code/test-example       0.001s
+
+
+Coverage
+
+  $ go test -coverprofile coverage.out
+  PASS
+  coverage: 100.0% of statements
+  ok      code/test-example       0.001s
+
+
+Coverage analysis
+
+  $ go tool cover -func=coverage.out
+  code/test-example/foo.go:5:     Foo             100.0%
+  total:                          (statements)    100.0%
+
+* Testing (3) - benchmarking
+
+.code gopath/src/code/test-example/foo_bench_test.go
+
+  $ go test  -bench .
+  goos: linux
+  goarch: amd64
+  pkg: code/test-example
+  BenchmarkFoo-4          2000000000               1.61 ns/op
+  PASS
+  ok      code/test-example       3.384s
+
 
 * The Bad
 

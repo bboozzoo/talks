@@ -1,14 +1,17 @@
 package main
 
-// #cgo CFLAGS: -Wall -Wextra -Wno-unused -I.
+// #cgo CFLAGS: -Wall -Wextra -Wno-unused
 // #include <foo.h>
 import "C"
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 func main() {
-	v := 2
-
-	fmt.Println("-- in Go code -- about to call C")
-	C.foo(C.int(v))
+	v := time.Now()
+	fmt.Println("-- time:    ", v)
+	fmt.Println("-- as Unix: ", v.Unix())
+	C.foo(C.int(v.Unix()))
 	fmt.Println("-- back in Go code")
 }
