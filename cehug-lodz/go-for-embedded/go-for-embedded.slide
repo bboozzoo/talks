@@ -41,6 +41,7 @@ https://github.com/bboozzoo
 - Featured toolchain, producing static binaries
 - Batteries included (HTTP, networking, crypto, database, JSON, templates, images)
 - Out of the box cross-compilation
+- Stable API promise
 - License: BSD
 
 : Usual license of 3rd party libraries - BSD(2/3 clause), MIT, Apache 2.0
@@ -233,7 +234,7 @@ Selective compilation
   ./zgoarch_arm.go ./zgoos_linux.go ./zversion.go
 
 
-* Selective compilation
+* Selective compilation (1)
 
 Target (GOARCH), OS (GOOS) specific files are picked up automatically:
 
@@ -247,11 +248,18 @@ Or via build tags:
   // +build linux darwin
   // +build 386
 
+
 : build linux,386 darwin,!cgo -> (linux & 386) || (darwin & !cgo)
 
-* Selective compilation (example)
+* Selective compilation (2)
 
 .code gopath/src/code/sysnum/sysnum_64.go
+
+* Selective compilation (3)
+
+go build -t withtestkeys
+
+.code gopath/src/code/withtestkeys/testkeys.go
 
 * Assembly - syscall/asm_linux_amd64.s
 
@@ -449,7 +457,7 @@ Coverage analysis
 
 * The Bad
 
-* Large binary size
+* Large binary size (1)
 
 .play gopath/src/code/small-print/print.go
 
@@ -461,7 +469,35 @@ Coverage analysis
 700KB (go build -ldflags '-s')
 270KB (go build -ldflags '-s' && upx)
 
+* Large binary size (2)
+
+Snapd
+
+  $ ls -sh1 bin
+  total 49M
+   14M snap
+  7,8M snapctl
+   17M snapd
+  4,3M snap-exec
+  2,7M snap-seccomp
+  3,8M snap-update-ns
+
+Docker
+
+  $ ls -sh1 $(pacman -Ql docker | awk '/(bin|lib)\/docker/ { print $2 }')
+   25M /usr/bin/docker
+   15M /usr/bin/docker-containerd
+   14M /usr/bin/docker-containerd-ctr
+  3,6M /usr/bin/docker-containerd-shim
+   50M /usr/bin/dockerd
+  656K /usr/bin/docker-init
+  3,1M /usr/bin/docker-proxy
+   11M /usr/bin/docker-runc
+
+
 * No Generics, templates, metaprogramming
+
+Repeat this often
 
   func FindString(list []string, str string) bool {
   	for _, k := range list {
@@ -480,3 +516,91 @@ Coverage analysis
   	}
   	return false
   }
+
+* Stable API promise (1)
+
+How is this bad?
+
+[[https://github.com/golang/go/issues/22739][golang#22739]]
+
+.image img/os-user-fix-signedness.png
+
+[[https://github.com/golang/go/issues/22924][golang#22924]]
+
+.image img/syscall-on-linux-386.png
+
+: Go authors keep to the promise, the API is frozen, even if parts of it are known to be broken, they will remain so.
+
+* Stable API promise (2)
+
+Add user:
+
+  sudo useradd --uid "$(( 0xfffffffe ))" --shell /bin/sh hightest
+
+Go:
+
+  func main() {
+  	r0, _, e := syscall.RawSyscall(syscall.SYS_GETUID32, 0, 0, 0)
+  	fmt.Println(uint32(r0), "/", e)
+  }
+
+man geteuid32(2):
+
+  ERRORS
+         These functions are always successful.
+
+Go piece returns:
+
+  4294967295 / no such file or directory
+
+* Stable API promise (2) contd.
+
+.image img/meme-best-of-c-and-python.png
+
+* Stable API promise (3) - 386 syscall
+
+  #define INVOKE_SYSCALL	INT	$0x80
+  TEXT	·Syscall(SB),NOSPLIT,$0-28
+  	CALL	runtime·entersyscall(SB)
+  	MOVL	trap+0(FP), AX	// syscall entry
+  	MOVL	a1+4(FP), BX
+  	MOVL	a2+8(FP), CX
+  	MOVL	a3+12(FP), DX
+  	MOVL	$0, SI
+  	MOVL	$0,  DI
+  	INVOKE_SYSCALL
+  	CMPL	AX, $0xfffff001   // -4095
+  	JLS	ok
+  	MOVL	$-1, r1+16(FP)
+  	MOVL	$0, r2+20(FP)
+  	NEGL	AX
+  	MOVL	AX, err+24(FP)
+  	CALL	runtime·exitsyscall(SB)
+  	RET
+  ok:
+  	MOVL	AX, r1+16(FP)
+  	MOVL	DX, r2+20(FP)
+  	MOVL	$0, err+24(FP)
+  	CALL	runtime·exitsyscall(SB)
+  	RET
+
+* Stable API promise (4)
+
+Fixes may land in [[https://godoc.org/golang.org/x/sys/unix][golang.org/x/sys/unix]]
+
+External packages may or may not be covered by stable API promise
+
+Packages may indicate if they have a fixed api: [[https://godoc.org/gopkg.in/check.v1][gopkg.in/check.v1]]
+
+* Fast release cycle
+
+Relaseses:
+
+- 1.9 - Aug 24 2017 (Ubuntu Xenial(backports), Debian Sid/Testing)
+- 1.8 - Feb 16 2017 (Ubuntu Zesty, Debian Stretch)
+- 1.7 - Aug 16 2016 (Ubuntu Zesty, Debian Jessie(backports))
+- 1.6 - Feb 17 2016 (Ubuntu Trusty-Zesty, Debian Jessie (backports))
+- 1.5 - Aug 19 2015
+- 1.4 - Dec 11 2014 (Ubuntu Trusty)
+
+: when wiring a cross distro package you need to be compatible with older releases
