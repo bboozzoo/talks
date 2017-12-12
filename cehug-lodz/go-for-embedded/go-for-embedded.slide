@@ -592,6 +592,39 @@ External packages may or may not be covered by stable API promise
 
 Packages may indicate if they have a fixed api: [[https://godoc.org/gopkg.in/check.v1][gopkg.in/check.v1]]
 
+* Dependency management (1)
+
+- None
+
+- Dependencies are vendored under `vendor/` in your project
+
+- Long time problem in Go - [[https://blog.gopheracademy.com/advent-2016/saga-go-dependency-management/][The Saga of Go Dependency Management]]
+
+- go get is the primary tool for _installing_ packages in `$GOPATH`
+
+  go get -u github.com/golang/dep/cmd/dep
+
+- Multiple solutions: govendor, glide, godep, glock, gvt
+
+- [[https://github.com/golang/dep][github.com/golang/dep]] is an emerging solution, yet still incomplete
+
+* Dependency management (2)
+
+
+  GOPATH=/home/user/gocode
+
+  /home/user/gocode/
+     src/
+        github.com/
+           bboozzoo/
+              foo/
+                 x.go    (go code in package github.com/bboozzoo/foo)
+                 vendor/ (vendored dependencies)
+                    golang.org/x/sys/unix/
+                    github.com/sirupsen/logrus/
+                    github.com/BurntSushi/toml/
+
+
 * Fast release cycle
 
 Relaseses:
