@@ -521,11 +521,11 @@ Repeat this often
 
 How is this bad?
 
-[[https://github.com/golang/go/issues/22739][golang#22739]]
+[[https://github.com/golang/go/issues/22739][golang#22739]] os/user: fix signedness of UIDs before stringifying
 
 .image img/os-user-fix-signedness.png
 
-[[https://github.com/golang/go/issues/22924][golang#22924]]
+[[https://github.com/golang/go/issues/22924][golang#22924]] syscall: on linux 386 doesn't support syscalls that don't fail
 
 .image img/syscall-on-linux-386.png
 
