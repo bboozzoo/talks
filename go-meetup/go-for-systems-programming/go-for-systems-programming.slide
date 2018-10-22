@@ -1,0 +1,645 @@
+Systems programming in Go
+25 Oct 2018
+
+Maciej Borzęcki
+Software Engineer, Canonical
+maciek.borzecki@gmail.com
+https://github.com/bboozzoo
+
+* Who am I?
+
+- Joined Canonical in Nov 2017
+
+- Snapd core team
+
+- Primarly Go, some C
+
+- Adding ...
+
+- Breaking ...
+
+- Fixing ...
+
+- ... stuff
+
+* The team
+
+.image img/team-small.jpg _ 650
+
+: working alongside some great engineers, name each one
+
+### Systems programming
+
+* What is systems programming?
+
+* What is ...
+
+.image img/systems-programming-wikipedia.png _ 950
+
+: rather vague definition
+
+* Well, but is Go a systems programming language?
+
+.image img/quora-1.png _ 650
+
+* Well, but is Go a systems programming language?
+
+.image img/quora-2.png _ 750
+
+* Well, but is Go a systems programming language?
+
+.image img/quora-2.png _ 750
+
+Clearly C, C++ are not modern
+
+* Well, but is Go a systems programming language?
+
+.image img/quora-3.png _ 750
+
+* Well, but is Go a systems programming language?
+
+.image img/quora-4.png _ 750
+
+* Well, but is Go a systems programming language?
+
+.image img/quora-5.png _ 750
+
+
+### Intro to snapd and snaps
+
+* snapd, snaps, Ubuntu Core
+
+#* Ubuntu Core & snapd
+#
+#.image img/ubuntu-core.png _ 650
+
+* Snaps
+
+- deliver applications: Spotify, Skype, VLC, Slack
+
+- deliver services: LXD, PostgreSQL
+
+- read-only filesystem image: squashfs
+
+- application data + snap metadata (meta/snap.yaml)
+
+- multiple revisions
+
+- delta updates
+
+- publisher controlled
+
+- confined or classic
+
+: 3M+ devices
+
+: 4000+ snaps in the store
+
+* Confinement
+
+- Separate mount namespace
+
+- SECCOMP
+
+- AppArmor
+
+- Interfaces
+
+  $ snap interfaces
+  Slot                               Plug
+  :account-control                   -
+  :accounts-service                  -
+  :alsa                              -
+  :autopilot-introspection           -
+  :avahi-control                     -
+  ...
+  :network                           gnome-calculator,http,lxd
+  :network-bind                      http,lxd,socket-activation
+  ...
+  :wayland                           gnome-calculator
+  :x11                               -
+
+* Ubuntu Core & snapd
+
+.image img/ubuntu-core.png _ 650
+
+: mount namespace is separate from the host filesystem
+
+: interfaces provide strict control over resource access
+
+: interface connection - apparmor, mount, seccomp, udev, systemd ...
+
+: core snap provides the base of mount namespace, snapd is part of core snap,
+: although there are changes coming in that department
+
+* snapd
+
+- Provides service to snaps
+
+- Management of snaps
+
+- Integration with low level host system
+
+- Access control
+
+- Go
+
+- Some bits in C (because Go was not good enough)
+
+- Cross distro: Ubuntu, Debian, Fedora, openSUSE, Arch, Solus, Amazon Linux 2, CentOS†, RHEL†
+
+- Runtime feature detection (/etc/os-release, /sys/kernel/.., /proc/sys/kernel/..)
+
+- Delivered via distro packages (RPM, DEB, ..) or with `core` (reexec)
+
+: /etc/os-release - detect distro name, global distro policy encoded dierctly in snapd
+
+: /sys/kernel/security/apparmor/
+
+* Runtime detection
+
+  $ snap debug sandbox-features
+  apparmor:             kernel:caps kernel:domain kernel:file kernel:mount kernel:namespaces
+                        kernel:network_v8 kernel:policy kernel:ptrace kernel:query kernel:rlimit
+                        kernel:signal parser:unsafe policy:default support-level:partial
+  confinement-options:  classic devmode
+  dbus:                 mediated-bus-access
+  kmod:                 mediated-modprobe
+  mount:                freezer-cgroup-v1 layouts mount-namespace per-snap-persistency
+                        per-snap-profiles per-snap-updates per-snap-user-profiles
+                        stale-base-invalidation
+  seccomp:              bpf-argument-filtering kernel:allow kernel:errno kernel:kill_process
+                        kernel:kill_thread kernel:log kernel:trace kernel:trap
+  udev:                 device-cgroup-v1 tagging
+
+  $ snap debug paths
+  SNAPD_MOUNT=/var/lib/snapd/snap
+  SNAPD_BIN=/var/lib/snapd/snap/bin
+  SNAPD_LIBEXEC=/usr/lib/snapd
+
+
+
+
+### Examples
+
+* Go for systems programming - The Good Parts™
+
+
+* Basics - pure Go code (1)
+
+Basic settings:
+
+- GOARCH: `386`, `amd64`, `arm`, `arm64`, `ppc64[le]`, `mips64[le]`, `mips[le]`
+- GOOS: `linux`, `windows`, `plan9`, `solaris`, `freebsd`, `openbsd`, `dragonfly`
+- not all choices possible
+
+Per architecture tuning:
+
+- GO386: `387`, `sse2`
+- GOARM: `5` (ARMv5, soft-float), `6` (default, ARMv6, VFPv1), `7` (ARMv7, VFPv3)
+
+* Basics - pure Go code (2)
+
+Building:
+
+  $ GOARCH=arm GOARM=7 GOOS=linux \
+     go build -v -x
+   ...
+   <edited>/go/pkg/tool/linux_amd64/compile -o $WORK/runtime/internal/sys.a \
+     -trimpath $WORK -goversion go1.9.2 -p runtime/internal/sys -std -+ -complete \
+     -buildid 72a8e34c91ba0091bd6eb4788d7d48c545c64a90 \
+     -D _<edited>/go/src/runtime/internal/sys -I $WORK -pack ./arch.go ./arch_arm.go \
+     ./intrinsics.go ./stubs.go ./sys.go ./zgoarch_arm.go ./zgoos_linux.go ./zversion.go
+   ...
+
+Useful switches:
+
+- `-x` show executed commands
+- `-v` verbose
+- `-o <path>` output path
+
+: unlike in GNU programs, command line switches are in form -<name> (single -)
+
+* Basics - pure Go code (3)
+
+Tool `compile` (other tools: `link`, `asm`, `go tool <foo>`)
+
+  <edited>/go/pkg/tool/linux_amd64/compile ...`
+
+Build ID support
+
+: build ID may be mandated by dustro policy
+
+  -buildid 72a8e34c91ba0091bd6eb4788d7d48c545c64a90 \
+
+Selective compilation
+
+  ... ./arch.go ./arch_arm.go \
+  ./intrinsics.go ./stubs.go ./sys.go \
+  ./zgoarch_arm.go ./zgoos_linux.go ./zversion.go
+
+
+
+* Selective compilation (1)
+
+Target (GOARCH), OS (GOOS) specific files are picked up automatically:
+
+  *_GOOS             zgoos_linux.go os_linux.go
+  *_GOARCH           softfloat_arm.go
+  *_GOOS_GOARCH      signal_linux_arm.go os_linux_arm.go
+
+Or via build tags:
+
+  // +build linux,386 darwin,!cgo
+  // +build linux darwin
+  // +build 386
+
+
+: build linux,386 darwin,!cgo -> (linux & 386) || (darwin & !cgo)
+
+* Selective compilation (2)
+
+.code gopath/src/code/sysnum/sysnum_64.go
+
+
+* Assembly - syscall/asm_linux_amd64.s
+
+  TEXT    ·Syscall(SB),NOSPLIT,$0-56
+          CALL    runtime·entersyscall(SB)
+          MOVQ    a1+8(FP), DI
+          MOVQ    a2+16(FP), SI
+          MOVQ    a3+24(FP), DX
+          MOVQ    $0, R10
+          MOVQ    $0, R8
+          MOVQ    $0, R9
+          MOVQ    trap+0(FP), AX  // syscall entry
+          SYSCALL
+          CMPQ    AX, $0xfffffffffffff001
+          JLS     ok
+          MOVQ    $-1, r1+32(FP)
+          MOVQ    $0, r2+40(FP)
+          NEGQ    AX
+          MOVQ    AX, err+48(FP)
+          CALL    runtime·exitsyscall(SB)
+          RET
+  ok:
+          MOVQ    AX, r1+32(FP)
+          MOVQ    DX, r2+40(FP)
+          MOVQ    $0, err+48(FP)
+          CALL    runtime·exitsyscall(SB)
+          RET
+
+: great feature - thin wrapper around direct kernel syscalls, meaning no libc dependncy, everything comes directly from/with Go
+
+: bad - rather obscure to write
+
+
+* Testing (1)
+
+- Testing is fist class feature of the language
+
+- Number of assertion frameworks:
+
+- [[https://github.com/go-check/check][gopkg.in/check.v1]]
+
+- [[https://github.com/stretchr/testify][github.com/stretchr/testify/assert]]
+
+- Consider splitting testing to separate pacakge
+
+* Testing (2)
+
+  foo.go:
+     foo.SomeExportedFunc
+     foo.somePrivateFunc
+     foo.privateVar
+
+  export_test.go:
+     foo.SomePrivateFunc
+     foo.privateVar
+     foo.MockPrivateVar()
+
+  foo_test.go:
+     foo_test.TestSomething()
+     foo_test.TestOtherthing()
+
+* Testing (3)
+
+Prepare your code for mocking, almost everything can be mocked:
+
+.code gopath/src/code/syscall-mocking/code.go
+
+* Testing (4)
+
+Mock low level operations:
+
+.code gopath/src/code/syscall-mocking/test.go
+
+
+* C + Go = Cgo  - The Good Parts™
+
+
+* Cgo & integrating with C (1)
+
+Cgo enables the creation of Go packages that call C code - [[https://golang.org/cmd/cgo/][cmd/cgo]]
+
+- Cgo automatically enabled by default when building for the same GOOS & GOARCH
+
+- setting GOOS or GOARCH different than hosts's *disables* CGO
+
+- example: [[https://github.com/bboozzoo/viadown][viadown]]
+
+  $ go build github.com/bboozzoo/viadown
+  $ ldd viadown
+        linux-vdso.so.1 (0x00007fff529ba000)
+        libpthread.so.0 => /usr/lib/libpthread.so.0 (0x00007f482d5da000)
+        libc.so.6 => /usr/lib/libc.so.6 (0x00007f482d222000)
+        /lib64/ld-linux-x86-64.so.2 => /usr/lib64/ld-linux-x86-64.so.2 (0x00007f482d7f8000)
+  $ CGO_ENABLED=0 go build github.com/bboozzoo/viadown
+  $ ldd viadown
+        not a dynamic executable
+
+: we have a dependency on libc and on a particular loader
+
+Use cases:
+- building for a container with different libc, eg. Alpine using `musl`
+
+: disabling CGO has some implications, eg. libc integration is disabled
+: no more getpwent() - non-cgo code will parse /etc/passwd
+: no more libc's resolver (NSS)
+
+* Integrating with C (2)
+
+.code gopath/src/code/cgo/foo.c
+
+.play gopath/src/code/cgo/main.go
+
+* Integrating with C (3)
+
+  $ go build -x -v code/cgo
+  ...
+  CGO_LDFLAGS="-g" "-O2" /home/maciek/code/go/go/pkg/tool/linux_amd64/cgo
+      -objdir $WORK/code/cgo/_obj/ -importpath code/cgo --
+      -I $WORK/code/cgo/_obj/ -g -O2 -Wall -Wextra -Wno-unused
+      -I/home/maciek/code/talks/cehug-lodz/go-for-embedded/gopath/src/code/cgo main.go
+  gcc -I . -fPIC -m64 -pthread -fmessage-length=0 -fdebug-prefix-map=$WORK=/tmp/go-build
+      -gno-record-gcc-switches -I $WORK/code/cgo/_obj/ -g -O2 -Wall -Wextra -Wno-unused
+      -I/home/maciek/code/talks/cehug-lodz/go-for-embedded/gopath/src/code/cgo
+      -o $WORK/code/cgo/_obj/foo.o -c foo.c
+  /home/maciek/code/go/go/pkg/tool/linux_amd64/link -o $WORK/code/cgo/_obj/exe/a.out
+      -L $WORK -extld=gcc -buildmode=exe -buildid=3477b3f117e0c8476113f77294063c7f4a796b19
+      $WORK/code/cgo.a
+  ...
+  $ ldd ./cgo
+        linux-vdso.so.1 (0x00007ffd1b941000)
+        libpthread.so.0 => /usr/lib/libpthread.so.0 (0x00007f8595583000)
+        libc.so.6 => /usr/lib/libc.so.6 (0x00007f85951cb000)
+        /lib64/ld-linux-x86-64.so.2 => /usr/lib64/ld-linux-x86-64.so.2 (0x00007f85957a1000)
+
+
+Well, that's not really a static executable.
+
+* Integrating with C (4)
+
+  $ go build -x -v -ldflags '-extldflags "-static"' code/cgo
+  ...
+  /home/maciek/code/go/go/pkg/tool/linux_amd64/link -o $WORK/code/cgo/_obj/exe/a.out
+      -L $WORK -extld=gcc -buildmode=exe -buildid=3477b3f117e0c8476113f77294063c7f4a796b19
+      -extldflags -static $WORK/code/cgo.a
+  ...
+  $ ldd ./cgo
+        not a dynamic executable
+
+* Integrating with C (5) - cross compilation
+
+Go tools respect CC, CXX
+
+  $ CGO_ENABLED=1 CC=arm-linux-gnueabihf-gcc \
+    GOARCH=arm GOARM=7 \
+    go build -x -v -o cgo -ldflags '-extldflags "-static"' code/cgo
+  $ ldd ./cgo
+        not a dynamic executable
+  $ file cgo
+  cgo: ELF 32-bit LSB executable, ARM, EABI5 version 1 (SYSV), statically linked,
+       for GNU/Linux 2.6.16, BuildID[sha1]=8330c33cc2d9602a6e2243b96375f9ce998717ac,
+       with debug_info, not stripped
+
+* Integrating with C (6) - snap-update-ns
+
+- Lifesaver in `github.com/snapcore/snapd/cmd/snap-update-ns`
+
+- snap-update-ns built on the host
+
+- ... but executed in the snap mount namespace via fexecv()
+
+- *must* be static
+
+* Integrating with C (7) - snap-update-ns
+
+  package main
+  // Use a pre-main helper to switch the mount namespace. This is required as
+  // golang creates threads at will and setns(..., CLONE_NEWNS) fails if any
+  // threads apart from the main thread exist.
+
+  /*
+
+  #include <stdlib.h>
+  #include "bootstrap.h"
+  // The bootstrap function is called by the loader before passing
+  // control to main. We are using `preinit_array` rather than
+  // `init_array` because the Go linker adds its own initialisation
+  // function to `init_array`, and having ours run second would defeat
+  // the purpose of the C bootstrap code.
+  //
+  // The `used` attribute ensures that the compiler doesn't oprimise out
+  // the variable on the mistaken belief that it isn't used.
+  __attribute__((section(".preinit_array"), used)) static typeof(&bootstrap) init = &bootstrap;
+
+  */
+
+* Integrating with C (8) - snap-update-ns
+
+  // setns_into_snap switches mount namespace into that of a given snap.
+  static int setns_into_snap(const char *snap_name)
+  {
+    ...
+  	// Switch to the mount namespace of the given snap.
+  	int err = setns(fd, CLONE_NEWNS);
+  	if (err < 0) {
+  		bootstrap_errno = errno;
+  		bootstrap_msg = "cannot switch mount namespace";
+  	};
+    ...
+  }
+
+  // bootstrap prepares snap-update-ns to work in the namespace of the snap given
+  // on command line.
+  void bootstrap(int argc, char **argv, char **envp)
+  {
+    ...
+  	if (snap_name != NULL && should_setns) {
+  		setns_into_snap(snap_name);
+  		// setns_into_snap sets bootstrap_{errno,msg}
+  	}
+  }
+
+* The Bad
+
+* Some things cannot† be done in Go
+
+`snap-confine`
+
+- written in C
+
+- does a number of low-level operations that need thread/process control
+
+- calls/syscalls applied to current thread/process
+
+- AppArmor (`aa_change*()`)
+
+- `setns()`
+
+- `pivot_root()`
+
+- `runtime.LockOSThread()` is not enough, there must be **no* Go threads running to begin with
+
+
+* Large binary size (1)
+
+.play gopath/src/code/small-print/print.go
+
+1.8MB (go build)
+
+.play gopath/src/code/smaller-print/print.go
+
+1MB (go build)
+700KB (go build -ldflags '-s')
+270KB (go build -ldflags '-s' && upx)
+
+* Large binary size (2)
+
+Snapd
+
+  $ ls -sh1 bin
+  total 49M
+   14M snap
+  7,8M snapctl
+   17M snapd
+  4,3M snap-exec
+  2,7M snap-seccomp
+  3,8M snap-update-ns
+
+Docker
+
+  $ ls -sh1 $(pacman -Ql docker | awk '/(bin|lib)\/docker/ { print $2 }')
+   25M /usr/bin/docker
+   15M /usr/bin/docker-containerd
+   14M /usr/bin/docker-containerd-ctr
+  3,6M /usr/bin/docker-containerd-shim
+   50M /usr/bin/dockerd
+  656K /usr/bin/docker-init
+  3,1M /usr/bin/docker-proxy
+   11M /usr/bin/docker-runc
+
+* Stable API promise & weird bugs (1)
+
+How is this bad?
+
+[[https://github.com/golang/go/issues/22739][golang#22739]] os/user: fix signedness of UIDs before stringifying
+
+.image img/os-user-fix-signedness.png
+
+[[https://github.com/golang/go/issues/22924][golang#22924]] syscall: on linux 386 doesn't support syscalls that don't fail
+
+.image img/syscall-on-linux-386.png
+
+: Go authors keep to the promise, the API is frozen, even if parts of it are known to be broken, they will remain so.
+
+* Stable API promise (2)
+
+Add user:
+
+  sudo useradd --uid "$(( 0xfffffffe ))" --shell /bin/sh hightest
+
+Go:
+
+  func main() {
+  	r0, _, e := syscall.RawSyscall(syscall.SYS_GETUID32, 0, 0, 0)
+  	fmt.Println(uint32(r0), "/", e)
+  }
+
+man geteuid32(2):
+
+  ERRORS
+         These functions are always successful.
+
+Go piece returns:
+
+  4294967295 / no such file or directory
+
+* Stable API promise (2) - 386 syscall
+
+  #define INVOKE_SYSCALL	INT	$0x80
+  TEXT	·Syscall(SB),NOSPLIT,$0-28
+  	CALL	runtime·entersyscall(SB)
+  	MOVL	trap+0(FP), AX	// syscall entry
+  	MOVL	a1+4(FP), BX
+  	MOVL	a2+8(FP), CX
+  	MOVL	a3+12(FP), DX
+  	MOVL	$0, SI
+  	MOVL	$0,  DI
+  	INVOKE_SYSCALL
+  	CMPL	AX, $0xfffff001   // -4095
+  	JLS	ok
+  	MOVL	$-1, r1+16(FP)
+  	MOVL	$0, r2+20(FP)
+  	NEGL	AX
+  	MOVL	AX, err+24(FP)
+  	CALL	runtime·exitsyscall(SB)
+  	RET
+  ok:
+  	MOVL	AX, r1+16(FP)
+  	MOVL	DX, r2+20(FP)
+  	MOVL	$0, err+24(FP)
+  	CALL	runtime·exitsyscall(SB)
+  	RET
+
+* Runtime - weird bugs
+
+[[https://github.com/golang/go/issues/20676][golang#20676]]: runtime: don't spawn threads from locked Ms
+
+.image img/golang-runtime-locked-M.png _ 700
+
+- in the context of seteuid()/setegid() for executing code as given user
+
+: in the context of snapshots feature, we wanted to pack a snapshot of user's data as given user
+
+: runtime would end up tainting a thread running given goroutine, the thread
+: would end up always executing as given user
+
+: the fix is in runtime, whic spawns a 'template' goroutine/thread
+
+* Or other general mysteries
+
+Shared build mode, reduce binary size, shared runtime library, `-buildmode=shared`
+
+  2017/12/20 09:58:47.570681 api.go:959: Installing snap "hello-world" revision unset
+  panic: runtime error: invalid memory address or nil pointer dereference
+  [signal SIGSEGV: segmentation violation code=0x1 addr=0xe6b pc=0x825cbca]
+  goroutine 41 [running]:
+  <snapd>/overlord/state.(*State).writing(0xe3f)
+          <snapd>/overlord/state/state.go:140 +0x1a
+  <snapd>/overlord/state.(*Task).SetProgress(0xb76a26fc, 0x966ca248, 0x4, 0x4f7a000, 0x4f7a000)
+          <snapd>/overlord/state/task.go:249 +0x163
+  <snapd>/overlord/snapstate.(*taskProgressAdapter).Finished(0x9625a140)
+         <snapd>/overlord/snapstate/progress.go:73 +0x75
+  <snapd>/store.glob..func1(0x84dcfef0, 0x9625a160, 0x966ca248, 0x4, 0x964e20c0, 0x60, ...)
+          <snapd>/store/store.go:1590 +0x8b0
+  <snapd>/store.(*Store).Download(0x965a6960, 0x84dcfef0, 0x9625a160, 0x966ca248, 0x4, ...)
+          <snapd>/store/store.go:1473 +0x34b
+  <snapd>/overlord/snapstate.(*SnapManager).doDownloadSnap(0x9659f590, 0x96294460, ...)
+          <snapd>/overlord/snapstate/handlers.go:349 +0x2b6
+  ...
+  <snapd>/vendor/gopkg.in/tomb%2ev2.(*Tomb).run(0x9623b860, 0x9625a420)
+          <snapd>/vendor/gopkg.in/tomb.v2/tomb.go:163 +0x22
+  created by <snapd>/vendor/gopkg.in/tomb%2ev2.(*Tomb).Go
+          <snapd>/vendor/gopkg.in/tomb.v2/tomb.go:159 +0xe4
