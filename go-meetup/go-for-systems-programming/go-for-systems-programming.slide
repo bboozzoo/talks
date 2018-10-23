@@ -5,6 +5,7 @@ Maciej Borzęcki
 Software Engineer, Canonical
 maciek.borzecki@gmail.com
 https://github.com/bboozzoo
+IRC `mborzecki`
 
 * Who am I?
 
@@ -180,7 +181,7 @@ Clearly C, C++ are not modern
 
 
 
-### Examples
+############################## The Good parts
 
 * Go for systems programming - The Good Parts™
 
@@ -293,6 +294,7 @@ Or via build tags:
 
 : bad - rather obscure to write
 
+######################### Testing
 
 * Testing (1)
 
@@ -334,6 +336,38 @@ Mock low level operations:
 
 .code gopath/src/code/syscall-mocking/test.go
 
+* Testing (5) - integration
+
+Test suite of ~240 tests, [[https://github.com/snapcore/spread][spread]], each PR and merge to master
+
+- Ubuntu 14.04, 16.04, 18.04, 18.10
+
+- Ubuntu Core 16, 18
+
+- Fedora 28 (27 manually)
+
+- openSUSE Leap 42.3 (15 is work-in-progress)
+
+- Arch Linux
+
+- Amazon Linux 2
+
+- CentOS (WIP)
+
+Example of minimal setup: [[https://github.com/bboozzoo/spread-mini]]
+
+* Testing (6) - integration
+
+Typical use cases
+
+Edge cases
+
+Distro specific cases
+
+Regressions
+
+
+############ CGO
 
 * C + Go = Cgo  - The Good Parts™
 
@@ -346,7 +380,7 @@ Cgo enables the creation of Go packages that call C code - [[https://golang.org/
 
 - setting GOOS or GOARCH different than hosts's *disables* CGO
 
-- example: [[https://github.com/bboozzoo/viadown][viadown]]
+- example: [[https://github.com/bboozzoo/viadown]]
 
   $ go build github.com/bboozzoo/viadown
   $ ldd viadown
@@ -361,6 +395,7 @@ Cgo enables the creation of Go packages that call C code - [[https://golang.org/
 : we have a dependency on libc and on a particular loader
 
 Use cases:
+
 - building for a container with different libc, eg. Alpine using `musl`
 
 : disabling CGO has some implications, eg. libc integration is disabled
@@ -429,7 +464,7 @@ Go tools respect CC, CXX
 
 - snap-update-ns built on the host
 
-- ... but executed in the snap mount namespace via fexecv()
+- ... but executed in the snap mount namespace via `fexecve(3)`
 
 - *must* be static
 
@@ -482,6 +517,8 @@ Go tools respect CC, CXX
   	}
   }
 
+####################################### The bad
+
 * The Bad
 
 * Some things cannot† be done in Go
@@ -496,12 +533,29 @@ Go tools respect CC, CXX
 
 - AppArmor (`aa_change*()`)
 
-- `setns()`
+- `setns(2)`
 
-- `pivot_root()`
+- `pivot_root(2)`
 
 - `runtime.LockOSThread()` is not enough, there must be **no* Go threads running to begin with
 
+* Build flags
+
+Nested linker flags cause much pain when the command is 'built'.
+
+`PKGBUILD` of `snapd`:
+
+  # because argument expansion with quoting in bash is hard, and -ldflags=-extldflags='-foo'
+  # is not exactly the same as -ldflags "-extldflags '-foo'" use the array trick
+  # to pass exactly what we want
+  flags=(-x -v -buildmode=pie -ldflags "-extldflags '$LDFLAGS'")
+  staticflags=(-x -v -buildmode=pie -ldflags "-extldflags '$LDFLAGS -static'")
+
+  # Build/install snap and snapd
+  go build "${flags[@]}" -o "$GOPATH/bin/snap" "${_gourl}/cmd/snap"
+  ...
+  # build snap-exec and snap-update-ns completely static for base snaps
+  go build "${staticflags[@]}" -o "$GOPATH/bin/snap-update-ns" "${_gourl}/cmd/snap-update-ns"
 
 * Large binary size (1)
 
@@ -643,3 +697,24 @@ Shared build mode, reduce binary size, shared runtime library, `-buildmode=share
           <snapd>/vendor/gopkg.in/tomb.v2/tomb.go:163 +0x22
   created by <snapd>/vendor/gopkg.in/tomb%2ev2.(*Tomb).Go
           <snapd>/vendor/gopkg.in/tomb.v2/tomb.go:159 +0xe4
+
+* Sometimes outside of your control
+
+Race condition between systemd, libmount and the kernel
+
+  systemd[1]: var-lib-snapd-snap-test\x2dsnapd\x2dcontent\x2dslot-2.mount:
+      Mount process finished, but there is no mount.
+  systemd[1]: var-lib-snapd-snap-test\x2dsnapd\x2dcontent\x2dslot-2.mount:
+      Failed with result 'protocol'.
+  systemd[1]: Failed to mount Mount unit for test-snapd-content-slot, revision 2.
+  kernel: print_req_error: I/O error, dev loop2, sector 0
+
+Other issues:
+
+- socket activation & passing fds to systemd
+
+- delayed crng init
+
+- GPG getting stuck on low entropy
+
+- Gnome Online Accounts wonky on DBus
