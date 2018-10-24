@@ -47,11 +47,7 @@ IRC `mborzecki`
 
 .image img/quora-2.png _ 750
 
-* Well, but is Go a systems programming language?
-
-.image img/quora-2.png _ 750
-
-Clearly C, C++ are not modern
+: Clearly C, C++ are not modern
 
 * Well, but is Go a systems programming language?
 
@@ -198,6 +194,10 @@ Per architecture tuning:
 
 - GO386: `387`, `sse2`
 - GOARM: `5` (ARMv5, soft-float), `6` (default, ARMv6, VFPv1), `7` (ARMv7, VFPv3)
+
+: this is all assuming the reference Go implementation & toolchain
+
+: not until long ago we were building snapd for powerpc too via gccgo
 
 * Basics - pure Go code (2)
 
@@ -464,7 +464,7 @@ Go tools respect CC, CXX
 
 - snap-update-ns built on the host
 
-- ... but executed in the snap mount namespace via `fexecve(3)`
+- ... but executed in the snap mount namespace via `fexecve(3)` (execute program specified via file descriptor)
 
 - *must* be static
 
@@ -516,6 +516,60 @@ Go tools respect CC, CXX
   		// setns_into_snap sets bootstrap_{errno,msg}
   	}
   }
+
+* Integrating with C (9) - snap-update-ns
+
+[[https://bugzilla.redhat.com/show_bug.cgi?id=1634486][RHBZ#1634486]]/[[https://bugs.centos.org/view.php?id=15333][CentOS#15333]]: building static binaries in RPMs fails when hardened build is enabled
+
+- CentOS 7.5/RHEL 7.5
+
+- hardened enables -fPIE, -buildmode=pie
+
+- trying to build snap-update-ns statically
+
+- .. but libc.a is not built with -fPIC
+
+- linking fails, incompatible objects in libc.a
+
+* Integrating with C (10) - not always good?
+
+Importing packages may pull in unwanted CGO dependencies
+
+  github.com/snapcore/snapd/cmd/snap-update-ns
+    ...
+    ├ unsafe
+    ├ C
+    ├ github.com/snapcore/snapd/dirs
+    ...
+    ├ github.com/snapcore/snapd/interfaces/mount
+      ...
+      ├ github.com/snapcore/snapd/cmd
+        ...
+        ├ github.com/snapcore/snapd/logger
+          ...
+          └ github.com/snapcore/snapd/osutil
+            ...
+            ├ C           <--- getgrnam()
+            ├ os/user     <--- getpwent()
+
+libc is fragile!!
+
+* Integrating with C (11) - not always good?
+
+  $ go build -o snap-update-ns -ldflags '-extldflags "-static"' \
+       github.com/snapcore/snapd/cmd/snap-update-ns
+  # github.com/snapcore/snapd/cmd/snap-update-ns
+  ...
+  /usr/bin/ld: /tmp/go-link-508435354/000004.o: in function `_cgo_ea77d9535f48_Cfunc_getgrnam_r':
+  /tmp/go-build/cgo-gcc-prolog:60: warning:
+      Using 'getgrnam_r' in statically linked applications requires
+      at runtime the shared libraries from the glibc version used for linking
+  ...
+
+: just some hints from ld
+
+: NSS is a dependency for glibc, loaded dynamically?
+
 
 ####################################### The bad
 
@@ -674,7 +728,7 @@ Go piece returns:
 
 * Or other general mysteries
 
-Shared build mode, reduce binary size, shared runtime library, `-buildmode=shared`
+Shared build mode, smaller binary, shared runtime library, `-buildmode=shared`
 
   2017/12/20 09:58:47.570681 api.go:959: Installing snap "hello-world" revision unset
   panic: runtime error: invalid memory address or nil pointer dereference
