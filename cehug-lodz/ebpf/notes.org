@@ -1,0 +1,303 @@
+
+**** BPF
+
+***** history
+      - 1992
+      - BSD, BSD Packet Filter
+      - Design goals:
+        1. It must be protocol independent. The kernel should not have to be modified to add new protocol support
+        2. It must be general. The instruction set should be rich enough to handle unforeseen uses
+        3. Packet data references should be minimized
+        4. Decoding an instruction should consist of a single C switch statement
+        5. The abstract machine registers should reside in physical registers
+
+***** abstract machine
+     - 2 32-bit registers, A (accumulator), X (index)
+     - stack of 16 32-bit slots (scratch)
+     - instructions:
+       - load/store (ld*, ldx*, st*, stx*)
+       - ALU operations on A using X register or a constant
+       - conditional jumps, compare A with constant or X, forward branch
+       - returns, discard packet if filter returns 0
+       - misc.
+     - fixed length instruction format:
+       opcode:16 jt:8 jf:8 k:32
+       - opcode
+       - jt: jump true offset
+       - jf: jump false offset
+       - k: generic field, meaning depends on opcode (constant, address for ld, jump offset for ja [jump always])
+       - longest conditional jump is 256 instructions (offset is 8 bits)
+
+**** tcpdump
+     Ehternet header - 14 octets
+
+     IPv4 and TCP (IPv4 header - 20+ octets)
+
+     #+BEGIN_SRC text
+       $ tcpdump -d 'ip and tcp port 80'
+       (000) ldh      [12]
+       (001) jeq      #0x800           jt 2    jf 12  <-- EtherType 0x0800 IPv4
+       (002) ldb      [23]
+       (003) jeq      #0x6             jt 4    jf 12  <-- IPv4 Protocol - TCP
+       (004) ldh      [20]
+       (005) jset     #0x1fff          jt 12   jf 6
+       (006) ldxb     4*([14]&0xf)                    <-- Internet Header Length
+       (007) ldh      [x + 14]                        <-- TCP source port
+       (008) jeq      #0x50            jt 11   jf 9
+       (009) ldh      [x + 16]                        <-- TCP destination port
+       (010) jeq      #0x50            jt 11   jf 12
+       (011) ret      #262144                         <-- accept 256k of packet data
+       (012) ret      #0                              <-- ignore
+     #+END_SRC
+
+     IPv6 and TCP (IPv6 header - 40 octets)
+
+     #+BEGIN_SRC text
+       $ tcpdump -d 'ip6 and tcp port 80'
+       (000) ldh      [12]
+       (001) jeq      #0x86dd          jt 2    jf 9  <-- EtherType 0x86dd IPv6
+       (002) ldb      [20]
+       (003) jeq      #0x6             jt 4    jf 9  <-- IPv6 Protocol - TCP
+       (004) ldh      [54]
+       (005) jeq      #0x50            jt 8    jf 6  <-- TCP source port
+       (006) ldh      [56]
+       (007) jeq      #0x50            jt 8    jf 9  <-- TCP destination port
+       (008) ret      #262144
+       (009) ret      #0
+     #+END_SRC
+
+
+**** seccomp
+     - 'classic' BPF
+     - prctl(SECCOMP_SET_MODE_FILTER, ...)
+     - kernel/seccomp.c: seccomp_prepare_filter()
+     - net/core/filter.c: bpf_check_classic()
+
+     - executed
+       - kernel/seccomp.c: seccomp_run_filters()
+         - BPF_PROG_RUN(), returns seccomp action
+
+     - scmp_sys_resolver - resolve system call number
+     - scmp_bpf_disasm - disassemble BPF program
+
+**** eBPF
+
+     - extended BPF
+
+***** abstract machine
+      - 64 bit registers instead of 32 bit stack
+      - r0 - r10
+        -
+      - C compatible ABI
+        - parameters passed in r1-r5
+          - r1 contains the call context (TBD later)
+        - r6-r9 calle saved
+        - r10 frame pointer
+        - return value in r0
+      - calls to external BPF helpers
+
+***** BPF helpers
+      - explicitly declared in the kernel
+      - BPF_CALL_{0..5} helper macro
+      - explicit function prototype declaration
+      - example:
+        #+BEGIN_SRC c
+          /* prototype for BPF verifier */
+          const struct bpf_func_proto bpf_get_prandom_u32_proto = {
+            .func		= bpf_user_rnd_u32,
+            .gpl_only	= false,
+            .ret_type	= RET_INTEGER,
+          };
+
+          /* for the actual call from eBPF */
+          BPF_CALL_0(bpf_user_rnd_u32)
+          {
+            /* Should someone ever have the rather unwise idea to use some
+             ,* of the registers passed into this function, then note that
+             ,* this function is called from native eBPF and classic-to-eBPF
+             ,* transformations. Register assignments from both sides are
+             ,* different, f.e. classic always sets fn(ctx, A, X) here.
+             ,*/
+            struct rnd_state *state;
+            u32 res;
+
+            state = &get_cpu_var(bpf_user_rnd_state);
+            res = prandom_u32_state(state);
+            put_cpu_var(bpf_user_rnd_state);
+
+            return res;
+          }
+        #+END_SRC
+
+***** program context
+      - example cgroup v2
+        - cgroup v1 had a device control group
+        - separate ~device.allow~, ~device.deny~ files, where one would write access mode, major:minor
+      - cgroup v2 allows attaching a BPF program to serve the same purpose
+      - BPF_PROG_TYPE_CGROUP_DEVICE
+      - actuall call code:
+        #+BEGIN_SRC c
+          int __cgroup_bpf_check_dev_permission(short dev_type, u32 major, u32 minor,
+                        short access, enum bpf_attach_type type)
+          {
+            struct cgroup *cgrp;
+            /* THIS IS PASSED AS CONTEXT */
+            struct bpf_cgroup_dev_ctx ctx = {
+              .access_type = (access << 16) | dev_type,
+              .major = major,
+              .minor = minor,
+            };
+            int allow = 1;
+
+            rcu_read_lock();
+            cgrp = task_dfl_cgroup(current);
+            allow = BPF_PROG_RUN_ARRAY(cgrp->bpf.effective[type], &ctx,
+                     BPF_PROG_RUN);
+            rcu_read_unlock();
+
+            return !allow;
+          }
+        #+END_SRC
+
+***** tools
+      - kernel tools/bpf
+      - bpftool
+
+**** eBPF use
+
+***** cgroup v2
+
+****** cgroup firewall
+       - systemd sets up a 'firewall' based on IPAddressDeny/IPAddressAllow properties of a service
+       - sudo ./bpftool/bpftool prog dump xlated id 108
+       - sudo ./bpftool/bpftool cgroup tree
+       - sudo ./bpftool/bpftool prog
+
+****** device control
+       - point to systemd source code
+       - eBPF firewall
+
+
+**** tracing
+
+***** events
+      - generic event trace
+      - manually defined trace points
+      - manually invoked
+        - TRACE_EVENT(....)
+          - include/trace/events/skb.h, TRACE_EVENT(kfree_skb)
+        - trace_<name>()
+          - net/core/skbuff.c
+            - trace_kfree_skb()
+
+***** kprobes
+      - can trace whatever kprobe can probe
+      - needs dynamic tracing
+      - example of a probe
+
+***** uprobes
+      - explicitly calculate the offset in the binary
+      - instruction is replaced with a trap
+      - use ~perf probe~ to make the process more convenient
+        - define a new probe
+        - then record a trace
+      - how to handle binaries from Go or Rust?
+
+****** statically defined trace points
+       - USDT
+       - goes back to DTRACE from Solaris
+       - SystemTap provides the necessary facilities
+
+***** seccomp demo
+      - perf trace ./a.out ./prog.bpf
+      - strace ./a.out ./prog.bpf
+        - show how read never finishes
+      - install probe
+        - see kernel source code, function that applies seccomp filters is seccomp_run_filters
+        - sudo perf probe -v seccomp_run_filters
+      - record a trace
+        - sudo perf record -e 'probe:seccomp_run_filters,syscalls:*' ./a.out ./prog.bpf
+        - sudo perf script
+      - single comand
+        - sudo perf trace -e 'probe:seccomp_run_filters,syscalls:sys_enter_read,syscalls:sys_exit_read,syscalls:sys_enter_write,syscalls:sys_exit_write' ./a.out ./prog.bpf
+
+***** libsoup demo
+      - increasing detail level
+        - just TCP
+          - sudo perf trace -e 'tcp:*' ./a.out http://ifconfig.co/json > /dev/null
+        - TCP & skb
+          - sudo perf list |grep skb <--- predefined trace events
+          - sudo perf trace -e 'tcp:*,skb:*' ./a.out http://ifconfig.co/json > /dev/null
+        - include UDP
+          - sudo perf trace -e 'tcp:*,skb:*,udp:*' ./a.out http://ifconfig.co/json > /dev/null
+      - uprobe
+        - build with debug symbols
+        - build without debug symbols and strip
+        - sudo perf probe -x /usr/lib/libsoup-2.4.so.1.8.0 soup_message_body_new
+        - sudo perf probe -x /usr/lib/libsoup-2.4.so.1.8.0 soup_message_new
+        - sudo perf probe -x /usr/lib/libgobject-2.0.so g_object_unref
+          - sudo perf trace -e 'tcp:*,skb:*,udp:*,probe_libsoup:*,probe_libgobject:*' ./a.out http://ifconfig.co/json > /dev/null
+        - show adding return probes
+          - sudo perf probe -x /usr/lib/libsoup-2.4.so.1.8.0 'soup_message_body_new%return'
+        - how long it takes to send a message?
+          - sudo perf probe -x /usr/lib/libsoup-2.4.so.1.8.0 soup_session_send_message
+          - sudo perf probe -x /usr/lib/libsoup-2.4.so.1.8.0 'soup_session_send_message%return'
+          - sudo perf trace -e 'probe_libsoup:soup_session_send_message,probe_libsoup:soup_session_send_message__return' ./a.out http://ifconfig.co/json > /dev/null
+        - what is the returned HTTP status code
+          - sudo perf probe -d probe_libsoup:soup_session_send_message__return
+          - sudo perf probe -x /usr/lib/libsoup-2.4.so.1.8.0 'soup_session_send_message%return' '$retval:u32'
+                                                              ^ return probe                     ^ returned value, cast to u32
+          - sudo perf trace -e 'probe_libsoup:soup_session_send_message,probe_libsoup:soup_session_send_message__return' ./a.out http://ifconfig.co/json > /dev/null
+
+
+****** DNS trace
+       - bcc
+       - hook to IPv4 UDP sendmsg implementation
+       - kprobe
+       - show nslookup
+       - show libsoup demo
+       - trace both paths, UDP socket 'connected', or disconnected
+       - code
+         #+BEGIN_SRC c
+           int udp_sendmsg(struct sock *sk, struct msghdr *msg, size_t len)
+           {
+             struct inet_sock *inet = inet_sk(sk);
+             ...
+             DECLARE_SOCKADDR(struct sockaddr_in *, usin, msg->msg_name);
+             ...
+             int connected = 0;
+             __be32 daddr, faddr, saddr;
+             __be16 dport;
+             ...
+             /*
+              ,*	Get and verify the address.
+              ,*/
+             if (usin) {
+               ...
+               daddr = usin->sin_addr.s_addr;
+               dport = usin->sin_port;
+             } else {
+               if (sk->sk_state != TCP_ESTABLISHED)
+                 return -EDESTADDRREQ;
+               daddr = inet->inet_daddr;
+               dport = inet->inet_dport;
+               /* Open fast path for connected socket.
+                  Route will not be used, if at least one option is set.
+                ,*/
+               connected = 1;
+             }
+             ...
+           }
+         #+END_SRC
+
+
+
+***** why bother
+      - strace
+        - can lie by default (show numeric system call numbers)
+        - uses ptrace
+          - high overhead
+        - attaches to program
+        - can change execution
+      - tracing failicites
+        - super flexible
